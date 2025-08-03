@@ -14,17 +14,12 @@ export interface CreateAddressRequest {
 }
 
 export interface UpdateAddressRequest {
-  id: number;
   streetAddress?: string;
   city?: string;
   state?: string;
   postalCode?: string;
   country?: string;
   isDefault?: boolean;
-}
-
-export interface DeleteAddressRequest {
-  id: number;
 }
 
 // Creates a new address for the current user.
@@ -80,7 +75,7 @@ export const createAddress = api<CreateAddressRequest, Address>(
 );
 
 // Updates an existing address for the current user.
-export const updateAddress = api<UpdateAddressRequest, Address>(
+export const updateAddress = api<{ id: number } & UpdateAddressRequest, Address>(
   { auth: true, expose: true, method: "PUT", path: "/auth/addresses/:id" },
   async (req) => {
     const auth = getAuthData()!;
@@ -181,17 +176,15 @@ export const updateAddress = api<UpdateAddressRequest, Address>(
 );
 
 // Deletes an address for the current user.
-export const deleteAddress = api<DeleteAddressRequest, void>(
+export const deleteAddress = api<{ id: number }, void>(
   { auth: true, expose: true, method: "DELETE", path: "/auth/addresses/:id" },
   async (req) => {
     const auth = getAuthData()!;
     const userId = parseInt(auth.userID);
 
-    const result = await authDB.exec`
+    await authDB.exec`
       DELETE FROM addresses 
       WHERE id = ${req.id} AND user_id = ${userId}
     `;
-
-    // Note: Encore.ts doesn't provide affected rows count, so we can't verify deletion
   }
 );

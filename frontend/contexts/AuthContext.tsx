@@ -51,17 +51,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await backend.auth.login({ email, password });
-    setUser(response.user);
-    setToken(response.token);
-    localStorage.setItem("auth_token", response.token);
+    try {
+      const response = await backend.auth.login({ email, password });
+      setUser(response.user);
+      setToken(response.token);
+      localStorage.setItem("auth_token", response.token);
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
   };
 
   const register = async (data: RegisterData) => {
-    const response = await backend.auth.register(data);
-    setUser(response.user);
-    setToken(response.token);
-    localStorage.setItem("auth_token", response.token);
+    try {
+      const response = await backend.auth.register(data);
+      setUser(response.user);
+      setToken(response.token);
+      localStorage.setItem("auth_token", response.token);
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
+    }
   };
 
   const logout = () => {

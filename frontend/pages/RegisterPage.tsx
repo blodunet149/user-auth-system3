@@ -55,11 +55,25 @@ export function RegisterPage() {
         description: "Your account has been successfully created.",
       });
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
+      
+      let errorMessage = "Failed to create account. Please try again.";
+      
+      // Extract more specific error message if available
+      if (error?.message) {
+        if (error.message.includes("already exists")) {
+          errorMessage = "An account with this email already exists.";
+        } else if (error.message.includes("Invalid email")) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.message.includes("Password must be")) {
+          errorMessage = "Password must be at least 8 characters long.";
+        }
+      }
+      
       toast({
         title: "Registration failed",
-        description: "Failed to create account. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

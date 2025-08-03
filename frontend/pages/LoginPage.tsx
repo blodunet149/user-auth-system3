@@ -26,11 +26,23 @@ export function LoginPage() {
         description: "You have been successfully logged in.",
       });
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      let errorMessage = "Invalid email or password. Please try again.";
+      
+      // Extract more specific error message if available
+      if (error?.message) {
+        if (error.message.includes("Invalid email or password")) {
+          errorMessage = "Invalid email or password. Please try again.";
+        } else if (error.message.includes("unauthenticated")) {
+          errorMessage = "Invalid credentials. Please check your email and password.";
+        }
+      }
+      
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
