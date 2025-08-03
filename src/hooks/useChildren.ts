@@ -1,51 +1,27 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-
-interface Child {
-  id: string;
-  name: string;
-  class_name: string;
-}
+import backend from '~backend/client';
+import type { Child } from '~backend/dapoer/api';
 
 export const useChildren = () => {
   const [children, setChildren] = useState<Child[]>([]);
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchChildren();
-    }
-  }, [user]);
+    fetchChildren();
+  }, []);
 
   const fetchChildren = async () => {
     try {
-      const { data, error } = await supabase
-        .from('children')
-        .select('*')
-        .eq('user_id', user?.id);
-
-      if (error) {
-        console.log('Error fetching children:', error);
-        // Fallback: provide some default children data
-        setChildren([
-          { id: '1', name: 'Anak 1', class_name: 'Kelas 1A' },
-          { id: '2', name: 'Anak 2', class_name: 'Kelas 2B' }
-        ]);
-        return;
-      }
-
-      setChildren(data || []);
+      const resp = await backend.dapoer.listChildren({});
+      setChildren(resp.children);
     } catch (error) {
       console.error('Error fetching children:', error);
-      // Fallback data when table doesn't exist
+      // Fallback data for UI development without a running backend
       setChildren([
-        { id: '1', name: 'Anak 1', class_name: 'Kelas 1A' },
-        { id: '2', name: 'Anak 2', class_name: 'Kelas 2B' }
+        { id: 1, name: 'Anak 1', class_name: 'Kelas 1A', user_id: 1, created_at: new Date(), updated_at: new Date() },
+        { id: 2, name: 'Anak 2', class_name: 'Kelas 2B', user_id: 1, created_at: new Date(), updated_at: new Date() }
       ]);
     }
   };
 
-  return { children };
+  return { children, fetchChildren };
 };

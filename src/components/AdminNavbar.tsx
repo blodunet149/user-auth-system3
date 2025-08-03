@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Utensils, ShoppingBag, Calendar, FileText, LogOut, Menu, X, Plus, BarChart3, GraduationCap, Users } from "lucide-react";
@@ -12,13 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const AdminNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
@@ -134,11 +131,11 @@ const AdminNavbar = () => {
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
-                      src={user?.user_metadata?.avatar_url || ""} 
-                      alt={user?.user_metadata?.full_name || "Admin"} 
+                      src={""} 
+                      alt={"Admin"} 
                     />
                     <AvatarFallback>
-                      {user?.user_metadata?.full_name?.charAt(0).toUpperCase() || "A"}
+                      A
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -150,7 +147,7 @@ const AdminNavbar = () => {
                   Kembali ke Aplikasi Utama
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem onClick={() => navigate("/")}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Keluar
                 </DropdownMenuItem>
@@ -182,7 +179,7 @@ const AdminNavbar = () => {
               <div className="border-t border-white/20 pt-2 mt-2">
                 <Button
                   variant="ghost"
-                  onClick={() => signOut()}
+                  onClick={() => navigate("/")}
                   className="w-full justify-start text-white/80 hover:bg-white/10 hover:text-white"
                 >
                   <LogOut className="mr-2 h-4 w-4" />

@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import backend from '~backend/client';
+import type { Child, Class, Student } from '~backend/dapoer/api';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,31 +11,7 @@ import { PaginationControls } from '@/components/ui/pagination-controls';
 import ChildForm from '@/components/children/ChildForm';
 import ChildCard from '@/components/children/ChildCard';
 
-interface Child {
-  id: string;
-  name: string;
-  class_name: string;
-  nik?: string;
-  nis?: string;
-  created_at: string;
-}
-
-interface Class {
-  id: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-}
-
-interface Student {
-  id: string;
-  nik: string;
-  nis?: string;
-  name: string;
-  class_name?: string;
-}
-
-const Children = () => {
+const ChildrenPage = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +19,7 @@ const Children = () => {
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [searchNik, setSearchNik] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const { user } = useAuth();
 
-  // Pagination
   const {
     currentPage,
     totalPages,
@@ -63,22 +36,14 @@ const Children = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      fetchChildren();
-      fetchClasses();
-    }
-  }, [user]);
+    fetchChildren();
+    fetchClasses();
+  }, []);
 
   const fetchChildren = async () => {
     try {
-      const { data, error } = await supabase
-        .from('children')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setChildren(data || []);
+      const { children } = await backend.dapoer.listChildren({});
+      setChildren(children);
     } catch (error) {
       console.error('Error fetching children:', error);
       toast({
@@ -93,14 +58,8 @@ const Children = () => {
 
   const fetchClasses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setClasses(data || []);
+      const { classes } = await backend.dapoer.listClasses({});
+      setClasses(classes);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -113,54 +72,24 @@ const Children = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('nik', searchNik.trim())
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          toast({
-            title: "Tidak Ditemukan",
-            description: "Siswa dengan NIK tersebut tidak ditemukan",
-            variant: "destructive",
-          });
-        }
+      const { student } = await backend.dapoer.getStudentByNik({ nik: searchNik.trim() });
+      if (student) {
+        setSelectedStudent(student);
+        toast({
+          title: "Siswa Ditemukan!",
+          description: `${student.name} - ${student.class_name || 'Belum ada kelas'}`,
+        });
+      } else {
+        toast({
+          title: "Tidak Ditemukan",
+          description: "Siswa dengan NIK tersebut tidak ditemukan",
+          variant: "destructive",
+        });
         setSelectedStudent(null);
-        return;
       }
-
-      setSelectedStudent(data);
-      toast({
-        title: "Siswa Ditemukan!",
-        description: `${data.name} - ${data.class_name || 'Belum ada kelas'}`,
-      });
     } catch (error) {
       console.error('Error searching student:', error);
       setSelectedStudent(null);
-    }
-  };
-
-  const checkNikExists = async (nik: string, excludeChildId?: string) => {
-    try {
-      let query = supabase
-        .from('children')
-        .select('id')
-        .eq('user_id', user?.id)
-        .eq('nik', nik);
-
-      if (excludeChildId) {
-        query = query.neq('id', excludeChildId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data && data.length > 0;
-    } catch (error) {
-      console.error('Error checking NIK:', error);
-      return false;
     }
   };
 
@@ -172,10 +101,8 @@ const Children = () => {
     const nik = formData.get('nik') as string;
     const nis = formData.get('nis') as string;
 
-    // Handle the "no-class" value
-    const processedClassName = className === 'no-class' ? null : className || null;
+    const processedClassName = className === 'no-class' ? undefined : className;
 
-    // Validate NIK format
     if (!nik || nik.length !== 16 || !/^\d{16}$/.test(nik)) {
       toast({
         title: "Error",
@@ -185,50 +112,25 @@ const Children = () => {
       return;
     }
 
-    // Check if NIK already exists for this user (except when editing the same child)
-    const nikExists = await checkNikExists(nik, editingChild?.id);
-    if (nikExists) {
-      toast({
-        title: "Error",
-        description: "NIK sudah digunakan untuk anak lain. Gunakan NIK yang berbeda.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       if (editingChild) {
-        const { error } = await supabase
-          .from('children')
-          .update({
-            name,
-            class_name: processedClassName,
-            nik,
-            nis: nis || null,
-          })
-          .eq('id', editingChild.id);
-
-        if (error) throw error;
-        toast({
-          title: "Berhasil!",
-          description: "Data anak berhasil diperbarui",
+        await backend.dapoer.updateChild({
+          id: editingChild.id,
+          name,
+          class_name: processedClassName,
+          nik,
+          nis: nis || undefined,
         });
+        toast({ title: "Berhasil!", description: "Data anak berhasil diperbarui" });
       } else {
-        const { error } = await supabase
-          .from('children')
-          .insert({
-            user_id: user?.id,
-            name,
-            class_name: processedClassName,
-            nik,
-            nis: nis || null,
-          });
-
-        if (error) throw error;
-        toast({
-          title: "Berhasil!",
-          description: "Anak berhasil ditambahkan",
+        await backend.dapoer.createChild({
+          name,
+          class_name: processedClassName,
+          nik,
+          nis: nis || undefined,
+          user_id: 1, // Placeholder for current user
         });
+        toast({ title: "Berhasil!", description: "Anak berhasil ditambahkan" });
       }
 
       setIsDialogOpen(false);
@@ -253,23 +155,12 @@ const Children = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (childId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data anak ini?')) {
-      return;
-    }
+  const handleDelete = async (childId: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus data anak ini?')) return;
 
     try {
-      const { error } = await supabase
-        .from('children')
-        .delete()
-        .eq('id', childId);
-
-      if (error) throw error;
-      
-      toast({
-        title: "Berhasil!",
-        description: "Data anak berhasil dihapus",
-      });
+      await backend.dapoer.deleteChild({ id: childId });
+      toast({ title: "Berhasil!", description: "Data anak berhasil dihapus" });
       fetchChildren();
     } catch (error: any) {
       console.error('Error deleting child:', error);
@@ -365,7 +256,7 @@ const Children = () => {
                 key={child.id}
                 child={child}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={() => handleDelete(child.id)}
               />
             ))}
           </div>
@@ -387,4 +278,4 @@ const Children = () => {
   );
 };
 
-export default Children;
+export default ChildrenPage;

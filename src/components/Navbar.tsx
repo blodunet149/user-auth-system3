@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Home,
@@ -25,53 +24,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from '@/hooks/useAuth';
-import { useUserRole } from '@/hooks/useUserRole';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export const Navbar = () => {
-  const { user, signOut } = useAuth();
-  const { role: userRole } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+    navigate('/');
   };
 
-  const getNavItems = () => {
-    if (userRole === 'admin') {
-      return [
-        { path: '/admin', label: 'Dashboard', icon: BarChart3 },
-        { path: '/admin/food-management', label: 'Kelola Menu', icon: UtensilsCrossed },
-        { path: '/admin/orders', label: 'Kelola Pesanan', icon: ShoppingCart },
-        { path: '/admin/recap', label: 'Rekapitulasi', icon: FileText },
-        { path: '/admin/reports', label: 'Laporan', icon: TrendingUp },
-        { path: '/admin/schedule', label: 'Jadwal', icon: Calendar },
-        { path: '/admin/populate-menus', label: 'Isi Menu Harian', icon: Plus },
-        { path: '/admin/user-management', label: 'Kelola Pengguna', icon: UserCog },
-        { path: '/admin/student-management', label: 'Kelola Siswa', icon: GraduationCap },
-        { path: '/profile', label: 'Profile Saya', icon: User },
-      ];
-    } else if (userRole === 'cashier') {
-      return [
-        { path: '/cashier', label: 'Dashboard Kasir', icon: BarChart3 },
-        { path: '/cashier/reports', label: 'Laporan Kasir', icon: FileText },
-        { path: '/profile', label: 'Profile Saya', icon: User },
-      ];
-    } else {
-      return [
-        { path: '/', label: 'Beranda', icon: Home },
-        { path: '/orders', label: 'Pesanan Saya', icon: ShoppingCart },
-        { path: '/children', label: 'Data Anak', icon: Users },
-        { path: '/batch-orders', label: 'Pesanan Batch', icon: Calendar },
-        { path: '/profile', label: 'Profile Saya', icon: User },
-      ];
-    }
-  };
-
-  const navItems = getNavItems();
+  const navItems = [
+    { path: '/', label: 'Beranda', icon: Home },
+    { path: '/orders', label: 'Pesanan Saya', icon: ShoppingCart },
+    { path: '/children', label: 'Data Anak', icon: Users },
+    { path: '/batch-orders', label: 'Pesanan Batch', icon: Calendar },
+    { path: '/profile', label: 'Profile Saya', icon: User },
+    { path: '/admin', label: 'Admin', icon: BarChart3 },
+    { path: '/cashier', label: 'Cashier', icon: UserCog },
+  ];
 
   return (
     <div className="bg-white border-b shadow-sm sticky top-0 z-50">
@@ -103,8 +74,8 @@ export const Navbar = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.full_name} />
-                  <AvatarFallback>{user?.user_metadata?.full_name?.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={""} alt={"User"} />
+                  <AvatarFallback>U</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -112,10 +83,10 @@ export const Navbar = () => {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {user?.user_metadata?.full_name}
+                    User
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
+                    user@example.com
                   </p>
                 </div>
               </DropdownMenuLabel>

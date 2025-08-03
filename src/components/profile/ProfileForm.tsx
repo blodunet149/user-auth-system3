@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,12 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { validateInput, sanitizeInput } from '@/utils/securityValidation';
 import { useRateLimit } from '@/hooks/useRateLimit';
 import { toast } from '@/components/ui/use-toast';
 import { User, Phone, MapPin, AlertTriangle } from 'lucide-react';
+import backend from '~backend/client';
+import type { User as UserType } from '~backend/dapoer/api';
 
 interface ProfileData {
   full_name: string;
@@ -20,50 +19,33 @@ interface ProfileData {
 }
 
 export const ProfileForm = () => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [user, setUser] = useState<UserType | null>(null);
   const [profileData, setProfileData] = useState<ProfileData>({
     full_name: '',
     phone: '',
     address: ''
   });
   
-  const { checkRateLimit, getRemainingAttempts } = useRateLimit(10, 300000); // 10 updates per 5 minutes
+  const { checkRateLimit, getRemainingAttempts } = useRateLimit(10, 300000);
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
-    if (!user) return;
-    
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, phone, address')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile data",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data) {
+      // Assuming user with ID 1 is the logged in user since we removed auth
+      const { user } = await backend.dapoer.getUser({ id: 1 });
+      if (user) {
+        setUser(user);
         setProfileData({
-          full_name: data.full_name || '',
-          phone: data.phone || '',
-          address: data.address || ''
+          full_name: user.full_name || '',
+          phone: user.phone || '',
+          address: user.address || ''
         });
       }
     } catch (error) {
@@ -80,33 +62,24 @@ export const ProfileForm = () => {
 
   const validateForm = (): boolean => {
     const newErrors: string[] = [];
-
-    // Full name validation
     if (!validateInput(profileData.full_name, 'name')) {
       newErrors.push('Please enter a valid full name (letters, spaces, hyphens, and dots only)');
     }
-
-    // Phone validation (optional but must be valid if provided)
     if (profileData.phone && !validateInput(profileData.phone, 'phone')) {
       newErrors.push('Please enter a valid phone number');
     }
-
-    // Address validation (optional but must be valid if provided)
     if (profileData.address && !validateInput(profileData.address, 'text')) {
       newErrors.push('Please enter a valid address');
     }
-
     setErrors(newErrors);
     return newErrors.length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user) return;
     
     const rateLimitKey = `profile_update_${user.id}`;
-    
     if (!checkRateLimit(rateLimitKey)) {
       setErrors(['Too many update attempts. Please try again later.']);
       return;
@@ -124,23 +97,15 @@ export const ProfileForm = () => {
         address: sanitizeInput(profileData.address)
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(sanitizedData)
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error updating profile:', error);
-        setErrors(['Failed to update profile. Please try again.']);
-        return;
-      }
+      await backend.dapoer.updateUser({
+        id: user.id,
+        ...sanitizedData
+      });
 
       toast({
         title: "Success",
         description: "Profile updated successfully",
       });
-
-      // Update local state with sanitized data
       setProfileData(sanitizedData);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -151,21 +116,13 @@ export const ProfileForm = () => {
   };
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
-    // Basic length limits
     const maxLengths = {
       full_name: 100,
       phone: 20,
       address: 500
     };
-
-    if (value.length > maxLengths[field]) {
-      return;
-    }
-
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    if (value.length > maxLengths[field]) return;
+    setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
   const remainingAttempts = getRemainingAttempts(`profile_update_${user?.id}`);
