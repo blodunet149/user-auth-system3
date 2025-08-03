@@ -10,12 +10,12 @@ interface AuthParams {
 
 const auth = authHandler<AuthParams, AuthData>(
   async (data) => {
-    const token = data.authorization?.replace("Bearer ", "");
-    if (!token) {
-      throw APIError.unauthenticated("Missing authorization token");
-    }
-
     try {
+      const token = data.authorization?.replace("Bearer ", "");
+      if (!token) {
+        throw APIError.unauthenticated("Missing authorization token");
+      }
+
       const decoded = verifyToken(token);
       
       // Verify user still exists
@@ -41,6 +41,12 @@ const auth = authHandler<AuthParams, AuthData>(
         lastName: user.last_name,
       };
     } catch (err) {
+      console.error("Auth handler error:", err);
+      
+      if (err instanceof APIError) {
+        throw err;
+      }
+      
       throw APIError.unauthenticated("Invalid token", err);
     }
   }
