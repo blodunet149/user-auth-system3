@@ -19,7 +19,7 @@ const statusColors = {
 
 export function OrdersPage() {
   const backend = useAuthenticatedBackend();
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const limit = 10;
 
@@ -28,7 +28,7 @@ export function OrdersPage() {
     queryFn: () => backend.orders.listOrders({
       limit,
       offset: page * limit,
-      status: statusFilter || undefined,
+      status: statusFilter === "all" ? undefined : statusFilter,
     }),
   });
 
@@ -59,7 +59,7 @@ export function OrdersPage() {
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All statuses</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="confirmed">Confirmed</SelectItem>
             <SelectItem value="processing">Processing</SelectItem>
@@ -139,7 +139,7 @@ export function OrdersPage() {
             <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
             <p className="text-gray-600">
-              {statusFilter ? `No orders with status "${statusFilter}"` : "You haven't placed any orders yet"}
+              {statusFilter !== "all" ? `No orders with status "${statusFilter}"` : "You haven't placed any orders yet"}
             </p>
           </CardContent>
         </Card>
